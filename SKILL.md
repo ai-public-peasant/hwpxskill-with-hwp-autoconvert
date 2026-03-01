@@ -3,6 +3,9 @@ name: hwpx
 description: "한글(HWPX) 문서 생성/읽기/편집 스킬. .hwpx 파일, 한글 문서, Hancom, OWPML 관련 요청 시 사용."
 ---
 
+> **원본**: [Canine89/hwpxskill](https://github.com/Canine89/hwpxskill)
+> **커스텀 (본 레포)**: HWP 바이너리 파일 자동 변환 워크플로우 추가
+
 # HWPX 문서 스킬 — XML-first 워크플로우
 
 한글(Hancom Office)의 HWPX 파일을 **XML 직접 작성** 중심으로 생성, 편집, 읽기할 수 있는 스킬.
@@ -507,9 +510,64 @@ python3 "$SKILL_DIR/scripts/validate.py" result.hwpx
 | 좌우여백 | 8504 | 30mm |
 | 본문폭 | 42520 | 150mm (A4-좌우여백) |
 
+<!-- 커스텀 추가 시작 -->
+## HWP → HWPX 자동 변환
+
+`.hwp` 파일이 입력으로 들어오면, 읽기/편집 전에 반드시 아래 방법으로 먼저 `.hwpx`로 변환한다.
+
+### 변환기 경로
+
+```
+C:\Program Files (x86)\HNC\HwpxConverter\HwpxConverter.exe
+```
+
+### 변환 방법 (파일 인자 방식)
+
+```bash
+# GUI 앱이지만 파일 인자를 받아 자동 변환함 (같은 폴더에 .hwpx 생성)
+"/c/Program Files (x86)/HNC/HwpxConverter/HwpxConverter.exe" "경로/파일명.hwp"
+
+# 변환 완료 대기 (3~5초)
+sleep 4
+
+# 변환된 .hwpx 경로
+# 원본과 동일한 폴더, 동일한 파일명에 확장자만 .hwpx
+```
+
+### Python에서 사용 패턴
+
+```python
+import subprocess, time
+from pathlib import Path
+
+def ensure_hwpx(path: str) -> str:
+    """HWP이면 HWPX로 변환 후 경로 반환. HWPX면 그대로 반환."""
+    p = Path(path)
+    if p.suffix.lower() == ".hwpx":
+        return path
+    if p.suffix.lower() == ".hwp":
+        converter = r"C:\Program Files (x86)\HNC\HwpxConverter\HwpxConverter.exe"
+        hwpx_path = p.with_suffix(".hwpx")
+        subprocess.Popen([converter, str(p)])
+        time.sleep(4)
+        if hwpx_path.exists():
+            return str(hwpx_path)
+        raise FileNotFoundError(f"변환 실패: {hwpx_path}")
+    raise ValueError(f"지원하지 않는 형식: {p.suffix}")
+```
+
+### 주의사항
+
+- 변환기가 백그라운드로 실행되므로 `sleep 4` 이상 대기 필요
+- 변환 결과는 원본 `.hwp`와 **같은 폴더**에 생성됨
+- `.hwpx` 파일이 이미 존재하면 덮어씀
+
+---
+<!-- 커스텀 추가 끝 -->
+
 ## Critical Rules
 
-1. **HWPX만 지원**: `.hwp`(바이너리) 파일은 지원하지 않는다. 사용자가 `.hwp` 파일을 제공하면 **한글 오피스에서 `.hwpx`로 다시 저장**하도록 안내할 것. (파일 → 다른 이름으로 저장 → 파일 형식: HWPX)
+1. **[커스텀]** **HWP 자동 변환**: `.hwp`(바이너리) 파일은 직접 읽지 않는다. 파일을 읽기 전에 **HwpxConverter.exe**로 자동 변환 후 처리한다. (아래 "HWP → HWPX 자동 변환" 섹션 참조)
 2. **secPr 필수**: section0.xml 첫 문단의 첫 run에 반드시 secPr + colPr 포함
 3. **mimetype 순서**: HWPX 패키징 시 mimetype은 첫 번째 ZIP 엔트리, ZIP_STORED
 4. **네임스페이스 보존**: XML 편집 시 `hp:`, `hs:`, `hh:`, `hc:` 접두사 유지
