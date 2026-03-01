@@ -515,7 +515,15 @@ python3 "$SKILL_DIR/scripts/validate.py" result.hwpx
 
 `.hwp` 파일이 입력으로 들어오면, 읽기/편집 전에 반드시 아래 방법으로 먼저 `.hwpx`로 변환한다.
 
-### 변환기 경로
+### 사전 준비: HWPX 변환기 애드인 설치
+
+변환기는 한컴 공식 다운로드 센터에서 무료로 받을 수 있다.
+
+1. [한컴 다운로드 센터](https://www.hancom.com/support/downloadCenter/download) 접속
+2. **추가 기능(Add-In)** 카테고리 선택
+3. **HWPX 변환기** 항목 다운로드 및 설치
+
+설치 후 변환기 경로:
 
 ```
 C:\Program Files (x86)\HNC\HwpxConverter\HwpxConverter.exe
